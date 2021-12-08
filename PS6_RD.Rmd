@@ -259,7 +259,7 @@ plot3
 ## **Question 14: Replicate the results of the three regressions estimated in the first column of table 1. Present your results in a table. Interpret the coefficients.**
 
 **Code:**
-```{r}
+```{r echo=FALSE, resize.width=10, results='asis'}
 data$indicator <- ifelse(data$predicted_income < 0, 1, 0)
 data$indicator <- ifelse(data$untracked_in_07 == 1, NA, data$indicator)
 reg1 <- felm(data = data, `received_pane05-07`~ indicator|0|0|predicted_income)
@@ -285,7 +285,7 @@ functions f1(·) and f2(·): no polynomial, a first order polynomial (as in Figu
 Hint: the variables listed in the table above after newtreat are the controls you will want to include.
 
 **Code:**
-```{r}
+```{r echo=FALSE, resize.width=10, results='asis'}
 data$indicator <- ifelse(data$predicted_income < 0, 1, 0)
 data$indicator <- ifelse(data$untracked_in_07 == 1, NA, data$indicator)
 reg4 <- felm(data = data, sup07 ~ indicator|0|0|predicted_income)
@@ -300,11 +300,22 @@ reg8 <- felm(data = data, sup07 ~ indicator + predicted_income + indicator*predi
 
 reg9 <- felm(data = data, sup07 ~ indicator + predicted_income + indicator*predicted_income + indicator*predicted_income_sqrd + geographic_locality + mean_age + log_per_capita_income + mean_household_size + mean_education + missing_mean_age + missing_log_per_capita_income + missing_mean_household_size + missing_mean_education + respondent_is_female + respondent_age + education_in_07 + missing_gender + missing_age + missing_education|0|0|predicted_income)
 
-stargazer(reg4, reg5, reg6, reg7, reg8, reg9, type = "text", title = c("PANES Program Eligibility, Participation, and Political Support for the Government"), covariate.labels = c("Government support, 2007 (during program)"), dep.var.labels = c("Indicator (Standard Errors)"))
+
+
+stargazer(reg4, reg5, reg6, reg7, reg8, reg9,
+          type= "text",
+          style = "qje",
+          title= "PANES Program Eligibility, Participation, and Political Support for the Government",
+          omit = c("geographic_locality", "mean_age", "log_per_capita_income", "mean_household_size", "mean_education", "missing_mean_age", "missing_log_per_capita_income", "missing_mean_household_size", "missing_mean_education", "respondent_is_female", "respondent_age", "education_in_07", "missing_gender", "missing_age", "missing_education","predicted_income", "indicator*predicted_income", "indicator*predicted_income_sqrd"),
+          dep.var.caption = c("Indicator (Standard Errors)"),
+          dep.var.labels = c("Indicator (Standard Errors)"),
+          covariate.labels = c("Government support, 2007 (during program)"), 
+          notes.label = "Significance Levels",
+          add.lines = list(c("Score controls", "None", "Linear", "Quadratic", "None", "Linear", "Quadratic"),c("Other controls", "No", "No","No","Yes", "Yes", "Yes")))
 
 ```
 
-**Answer:**
+**Answer: Hold the other variables equal, **
 
 
 
