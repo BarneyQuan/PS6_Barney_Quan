@@ -48,6 +48,7 @@ library(dplyr)
 library(stargazer)
 library(lfe)
 library(tidyverse)
+library(ggplot2)
 ```
 
 
@@ -101,7 +102,7 @@ names(data)[names(data) == 'geo'] <- 'geographic_locality'
 names(data)[names(data) == 'bl_medad'] <- 'mean_age'
 names(data)[names(data) == 'lnbl_ytoth_pc'] <- 'log_per_capita_income'
 names(data)[names(data) == 'bl_hhsize'] <- 'mean_household_size'
-names(data)[names(data) == 'bl_meduc'] <- 'mean_eductaion'
+names(data)[names(data) == 'bl_meduc'] <- 'mean_education'
 names(data)[names(data) == 'missbl_medad'] <- 'missing_mean_age'
 names(data)[names(data) == 'misslnbl_ytoth_pc'] <- 'missing_log_per_capita_income'
 names(data)[names(data) == 'missbl_hhsize'] <- 'missing_mean_household_size'
@@ -111,7 +112,7 @@ names(data)[names(data) == 'edad'] <- 'respondent_age'
 names(data)[names(data) == 'aniosed07'] <- 'education_in_07'
 names(data)[names(data) == 'misssexo'] <- 'missing_gender'
 names(data)[names(data) == 'missedad'] <- 'missing_age'
-names(data)[names(data) == 'missaniosed'] <- 'missing_educaion'
+names(data)[names(data) == 'missaniosed'] <- 'missing_education'
 View(data)
 ```
 
@@ -136,7 +137,7 @@ Note: This is how the authors modify this variable in their code. It seems count
 ```{r}
 data$sup07 <- 0
 for (supports_current_gove07 in data) {
-data$sup07 <- ifelse(data$supports_current_gov07 == 9, "NA", data$sup07)
+data$sup07 <- ifelse(data$supports_current_gov07 == 9, NA, data$sup07)
 data$sup07 <- ifelse(data$supports_current_gov07 == 2, 0, data$sup07)
 data$sup07 <- ifelse(data$supports_current_gov07 == 1, 0.5, data$sup07)
 data$sup07 <- ifelse(data$supports_current_gov07 == 3, 1, data$sup07)
@@ -144,7 +145,7 @@ data$sup07 <- ifelse(data$supports_current_gov07 == 3, 1, data$sup07)
 table(data$sup07)
 data$sup08 <- 0
 for (supports_current_gov08 in data) {
-data$sup08 <- ifelse(data$supports_current_gov08 == 9, "NA", data$sup08)
+data$sup08 <- ifelse(data$supports_current_gov08 == 9, NA, data$sup08)
 data$sup08 <- ifelse(data$supports_current_gov08 == 2, 0, data$sup08)
 data$sup08 <- ifelse(data$supports_current_gov08 == 1, 0.5, data$sup08)
 data$sup08 <- ifelse(data$supports_current_gov08 == 3, 1, data$sup08)
@@ -161,7 +162,7 @@ table(data$sup08)
 **Code:**
 ```{r}
 data$predicted_income_sqrd <- data$predicted_income * data$predicted_income
-View(data)
+#View(data)
 ```
 
 # We start by reproducing the main figures (2,3,and 4) of the paper as good figures are key to any regression discontinuity paper.
@@ -169,13 +170,13 @@ View(data)
 
 ## **Question 6: The data consists of over 3000 observations. How many points are plotted on these figures? How should we interpret the y axis? What does each point below the threshold represent? What does each point above the threshold represent?**
 
-**Answer:**
+**Answer: There are 45 points are plotted on these figure, 30 cells for eligible households, and 15 ineligible households. y axis is the percentile of the PANES eligible households. Each point below the threshold represent who were homeless and without a valid response to the qustion on support for the current government (ineligible) and Each point above the threshold represent who were not homeless and with a valid response to the qustion on support for the current government (eligible).**
 
 
-
+!!!
 ## **Question 7: Why is the number of points above the threshold different from the number below? **
 
-**Answer:**
+**Answer: Because the number of points above the threshold is the treatment group, and the numbers below the threshold is the control group.**
 
 
 ## **Question 8: Replicating these figures will require restructuring our data and calculating the values that are plotted. Generate a variable that will indicate the percentile group the observation is in. Note the difference in the number of percentile groups above and below the threshold. **
@@ -183,43 +184,100 @@ View(data)
 Note: you may find the `xtile` function in R useful.
 
 **Code:**
+```{r}
+library(statar)
+data$bins1 <- NA
+data$bins1[data$predicted_income < 0] <- xtile(data$predicted_income[data$predicted_income < 0], n=30)
+data$bins2 <- NA
+data$bins2[data$predicted_income >= 0] <- xtile(data$predicted_income[data$predicted_income >= 0], n=15)
+data$bins2 <- data$bins2 + 30
+data$bins1[data$predicted_income >= 0] <- data$bins2[data$predicted_income >= 0]
+View(data)
+```
 
 ## **Question 9: For each of the percentile groups, calculate the mean of each of the variables we will use for plotting: predicted income, receipt of PANES, support for the government in 2007, and support for the government in 2008.**
 
 **Code:**
+```{r}
+data_mean<-data %>%
+  group_by(bins1) %>%
+dplyr::summarize(prebinmean = mean(predicted_income, na.rm=TRUE),
+                 treatbinmean = mean(`received_pane05-07`, na.rm=TRUE), sup07binmean=mean(sup07, na.rm=TRUE),
+sup08binmean=mean(sup08, na.rm=TRUE), numb=n())
+View(data_mean)
+
+```
 
 ## **Question 10: Replicate figure 2. Make the figure as clear and informative as possible. You may want to create an indicator variable for percentiles above and below the threshold. ** 
 
 **Code:**
 
+```{r}
+data_mean$bins1 <- as.numeric(as.character(data_mean$bins1))
+plot1 <- ggplot(data_mean, aes(x=prebinmean, y=treatbinmean)) + geom_point()+geom_vline(xintercept = 0) + ylab("")+xlab("Predicted Income") + ggtitle("PANES Program Eligibility and Participation")
+plot1
+
+
+```
+
 
 ## **Question 11: What is the purpose of this figure and what should we take away from it? **
 
-**Answer:**
+**Answer:The purpose of the RD design is that the treatment assignment rule is known (or at least partially known). We should therefore be able to see discontinuous changes in the treatment and the outcome (if there is an e˙ect) as the running variable crosses the threshold, so the figure here is to visualize the discontinuous changes. The figure demonstrates that program implementation was remarkably clean; among applicants, practically all potential beneficiaries—i.e., those with a standardized predicted income score below zero—benefited from the program. The opposite holds for ineligible households, and the discontinuity in the probability of program receipt at the threshold is 99 percentage points. This implies that enforcement of the rule was nearly as strict as implied by the letter of the law.**
 
 
 
 ## **Question 12: Replicate figures 3 and 4. Make these figures as clear and informative as possible.  **
 
 **Code:**
+```{r}
+data_mean2 <- data_mean %>% filter(bins1 <= 30)
+data_mean3 <- data_mean %>% filter(bins1 > 30)
+#View(data_mean2)
+#View(data_mean3)
+plot2 <- ggplot() + 
+  geom_point(data_mean2, mapping = aes(x=prebinmean, y=sup07binmean)) + geom_smooth(data_mean2, mapping = aes(x=prebinmean, y=sup07binmean), method = lm, se = FALSE, color = "Black")+
+  geom_point(data_mean3, mapping = aes(x=prebinmean, y=sup07binmean)) + geom_smooth(data_mean3, mapping = aes(x=prebinmean, y=sup07binmean), method = lm, se = FALSE, color = "Black")+
+  geom_vline(xintercept = 0) + ylab("")+xlab("Predicted Income") + ggtitle(size_sum(0.5), "PANES Program Eligibility and Political Support for the Government,  2007 Follow-up Survey Round")
+plot2
+```
 
+```{r}
+plot3 <- ggplot() + 
+  geom_point(data_mean2, mapping = aes(x=prebinmean, y=sup08binmean)) + geom_smooth(data_mean2, mapping = aes(x=prebinmean, y=sup08binmean), method = lm, se = FALSE, color = "Black")+
+  geom_point(data_mean3, mapping = aes(x=prebinmean, y=sup08binmean)) + geom_smooth(data_mean3, mapping = aes(x=prebinmean, y=sup08binmean), method = lm, se = FALSE, color = "Black")+
+  geom_vline(xintercept = 0) + ylab("")+xlab("Predicted Income") + ggtitle(size_sum(0.5), "PANES Program Eligibility and Political Support for the Government,  2008 Follow-up Survey Round")
+plot3
+```
 
+!!!
 ## **Question 13: Interpret these figures. What should we take away from them? **
 
-**Answer:** 
+**Answer:The figure demonstrates that program implementation was remarkably clean; among applicants, practically all potential beneficiaries—i.e., those with a standardized predicted income score below zero—benefited from the program. The opposite holds for ineligible households, and the discontinuity in the probability of program receipt at the threshold is 99 percentage points. This implies that enforcement of the rule was nearly as strict as implied by the letter of the law.** 
 
 
 ## **Question 14: Replicate the results of the three regressions estimated in the first column of table 1. Present your results in a table. Interpret the coefficients.**
 
 **Code:**
+```{r}
+data$indicator <- ifelse(data$predicted_income < 0, 1, 0)
+data$indicator <- ifelse(data$untracked_in_07 == 1, NA, data$indicator)
+reg1 <- felm(data = data, `received_pane05-07`~ indicator|0|0|predicted_income)
+reg2 <- felm(data = data, sup07 ~ indicator|0|0|predicted_income)
+reg3 <- felm(data = data, sup08 ~ indicator|0|0|predicted_income)
 
-**Answer:**
+stargazer(reg1, reg2, reg3, type = "html", title = c("PANES Program Eligibility, Participation, and Political Support for the Government"), covariate.labels = c("Indicator (Standard Errors)"), dep.var.labels = c("Ever received PANES, 2005–2007", "Government support, 2007 (during program)","Government support, 2008 (post-program)"))
+
+```
+
+**Answer: The table above is the polynomial in the standardized score of degree 0, and the coefficient above represents how these polynomials interacted with the eligibility indicator **
 
 
 
 ## **Question 15: Write down the specifications used in row 2 of columns 1,2 and 3 of table 1. **
 
-**Answer:**
+**Answer: Columns 1–3 present specifications with different parameterizations of the 
+functions f1(·) and f2(·): no polynomial, a first order polynomial (as in Figure 2 in the paper), and a quadratic polynomial, respectively. **
 
 
 
@@ -227,6 +285,24 @@ Note: you may find the `xtile` function in R useful.
 Hint: the variables listed in the table above after newtreat are the controls you will want to include.
 
 **Code:**
+```{r}
+data$indicator <- ifelse(data$predicted_income < 0, 1, 0)
+data$indicator <- ifelse(data$untracked_in_07 == 1, NA, data$indicator)
+reg4 <- felm(data = data, sup07 ~ indicator|0|0|predicted_income)
+
+reg5 <- felm(data = data, sup07 ~ indicator + predicted_income + indicator*predicted_income|0|0|predicted_income)
+
+reg6 <- felm(data = data, sup07 ~ indicator + predicted_income + indicator*predicted_income + indicator*predicted_income_sqrd|0|0|predicted_income)
+
+reg7 <- felm(data = data, sup07 ~ indicator + geographic_locality + mean_age + log_per_capita_income + mean_household_size + mean_education + missing_mean_age + missing_log_per_capita_income + missing_mean_household_size + missing_mean_education + respondent_is_female + respondent_age + education_in_07 + missing_gender + missing_age + missing_education|0|0|predicted_income)
+
+reg8 <- felm(data = data, sup07 ~ indicator + predicted_income + indicator*predicted_income + geographic_locality + mean_age + log_per_capita_income + mean_household_size + mean_education + missing_mean_age + missing_log_per_capita_income + missing_mean_household_size + missing_mean_education + respondent_is_female + respondent_age + education_in_07 + missing_gender + missing_age + missing_education|0|0|predicted_income)
+
+reg9 <- felm(data = data, sup07 ~ indicator + predicted_income + indicator*predicted_income + indicator*predicted_income_sqrd + geographic_locality + mean_age + log_per_capita_income + mean_household_size + mean_education + missing_mean_age + missing_log_per_capita_income + missing_mean_household_size + missing_mean_education + respondent_is_female + respondent_age + education_in_07 + missing_gender + missing_age + missing_education|0|0|predicted_income)
+
+stargazer(reg4, reg5, reg6, reg7, reg8, reg9, type = "text", title = c("PANES Program Eligibility, Participation, and Political Support for the Government"), covariate.labels = c("Government support, 2007 (during program)"), dep.var.labels = c("Indicator (Standard Errors)"))
+
+```
 
 **Answer:**
 
@@ -234,7 +310,7 @@ Hint: the variables listed in the table above after newtreat are the controls yo
 
 ## **Question 17: What is the point of including all of these specifications?**
 
-**Answer:**
+**Answer: The point of including all of these specification is to give the reader a better view of how they design the test and how they thinking trough the problems, when the graph and table become complicated, then these specification could give a better sense of what the graph and table is showing there.**
 
 
 ## **Question 18: Using the coefficients estimated above, write out the function you would use to predict the probability a household supports the current government based on their predicted income score: **
@@ -258,8 +334,11 @@ Hint: the variables listed in the table above after newtreat are the controls yo
 ## **Question 19: How narrow is the "bandwidth" used by the authors. Why does this matter? Check that the results are robust to a narrower bandwidth. **
 
 **Code:**
+```{r}
 
-**Answer:**
+```
+
+**Answer:The bandwidth is used in how close to the threshold an observation’s running variable must be to be in the regression sample.**
 
 
 ## **Question 20: The authors attribute these effects to the causal effect of receiving the government transfers. What is the implied assumption behind this interpretation?**
@@ -270,12 +349,14 @@ Hint: the variables listed in the table above after newtreat are the controls yo
 
 ## **Question 21: What evidence do they provide to support this assumption?**
 
-**Answer:**
+**Answer: First off, the evidence in plot1 above that virtually all eligible households received the program while nearly all ineligible households did not, suggests that blatant patronage is unlikely to have occurred. Nonetheless, we present formal tests for nonrandom assignment around the eligibility threshold. First, we estimate equation (1) for multiple baseline covariates measured in 2005 in the table above (and present the results graphically in Figure A1 in
+the online Appendix). If eligibility score manipulation occurred systematically, we might find these characteristics varying discontinuously at the eligibility threshold, to the extent that they are correlated with households’ political orientation. **
  
 
 ## **Question 22: Was this threshold eligibility score specifically designed for this particular program? Why does this matter?**
 
-**Answer:**
+**Answer: Yes, the true eligibility threshold provides the best fit to the data as measured by the regression R2 (not shown), providing reas-surance that the discontinuity we exploit is a genuine feature of the data. As an additional robustness check, we take 
+advantage of the fact that the PANES eligibility threshold differs slightly across Uruguayan regions to estimate a difference-in-differences model, conditioning on the unstandardized income score and regional fixed effects, and focusing on the coefficient estimate on an indicator for PANES eligibility in that region. ** 
 
 
 
