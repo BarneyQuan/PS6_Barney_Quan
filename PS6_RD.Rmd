@@ -173,7 +173,7 @@ data$predicted_income_sqrd <- data$predicted_income * data$predicted_income
 **Answer: There are 45 points are plotted on these figure, 30 cells for eligible households, and 15 ineligible households. y axis is the percentile of the PANES eligible households. Each point below the threshold represent who were homeless and without a valid response to the qustion on support for the current government (ineligible) and Each point above the threshold represent who were not homeless and with a valid response to the qustion on support for the current government (eligible).**
 
 
-!!!
+
 ## **Question 7: Why is the number of points above the threshold different from the number below? **
 
 **Answer: Because the number of points above the threshold is the treatment group, and the numbers below the threshold is the control group.**
@@ -302,7 +302,7 @@ reg9 <- felm(data = data, sup07 ~ indicator + predicted_income + indicator*predi
 
 
 stargazer(reg4, reg5, reg6, reg7, reg8, reg9,
-          type= "text",
+          type= "html",
           style = "qje",
           title= "PANES Program Eligibility, Participation, and Political Support for the Government",
           omit = c("geographic_locality", "mean_age", "log_per_capita_income", "mean_household_size", "mean_education", "missing_mean_age", "missing_log_per_capita_income", "missing_mean_household_size", "missing_mean_education", "respondent_is_female", "respondent_age", "education_in_07", "missing_gender", "missing_age", "missing_education"),
@@ -362,17 +362,43 @@ $$
 
 **Code:**
 ```{r}
-data$bins1 <- NA
-data$bins1[data$predicted_income < 0] <- xtile(data$predicted_income[data$predicted_income < 0], n=30)
-data$bins2 <- NA
-data$bins2[data$predicted_income >= 0] <- xtile(data$predicted_income[data$predicted_income >= 0], n=15)
-data$bins2 <- data$bins2 + 30
-data$bins1[data$predicted_income >= 0] <- data$bins2[data$predicted_income >= 0]
-View(data)
+band_data <- filter(data, data$predicted_income < 0.01)
+band_data <- filter(data, data$predicted_income > -0.01)
+View(band_data)
 
 ```
 
-**Answer:The bandwidth is used in how close to the threshold an observation’s running variable must be to be in the regression sample.**
+```{r echo=FALSE, resize.width=10, results='asis'}
+band_data$indicator <- ifelse(band_data$predicted_income < 0, 1, 0)
+band_data$indicator <- ifelse(band_data$untracked_in_07 == 1, NA, data$indicator)
+reg10 <- felm(data = data, sup07 ~ indicator|0|0|predicted_income)
+
+reg11 <- felm(data = data, sup07 ~ indicator + predicted_income + indicator*predicted_income|0|0|predicted_income)
+
+reg12 <- felm(data = data, sup07 ~ indicator + predicted_income + indicator*predicted_income + indicator*predicted_income_sqrd|0|0|predicted_income)
+
+reg13 <- felm(data = data, sup07 ~ indicator + geographic_locality + mean_age + log_per_capita_income + mean_household_size + mean_education + missing_mean_age + missing_log_per_capita_income + missing_mean_household_size + missing_mean_education + respondent_is_female + respondent_age + education_in_07 + missing_gender + missing_age + missing_education|0|0|predicted_income)
+
+reg14 <- felm(data = data, sup07 ~ indicator + predicted_income + indicator*predicted_income + geographic_locality + mean_age + log_per_capita_income + mean_household_size + mean_education + missing_mean_age + missing_log_per_capita_income + missing_mean_household_size + missing_mean_education + respondent_is_female + respondent_age + education_in_07 + missing_gender + missing_age + missing_education|0|0|predicted_income)
+
+reg15 <- felm(data = data, sup07 ~ indicator + predicted_income + indicator*predicted_income + indicator*predicted_income_sqrd + geographic_locality + mean_age + log_per_capita_income + mean_household_size + mean_education + missing_mean_age + missing_log_per_capita_income + missing_mean_household_size + missing_mean_education + respondent_is_female + respondent_age + education_in_07 + missing_gender + missing_age + missing_education|0|0|predicted_income)
+
+
+
+stargazer(reg10, reg11, reg12, reg13, reg14, reg15,
+          type= "html",
+          style = "qje",
+          title= "PANES Program Eligibility, Participation, and Political Support for the Government",
+          omit = c("geographic_locality", "mean_age", "log_per_capita_income", "mean_household_size", "mean_education", "missing_mean_age", "missing_log_per_capita_income", "missing_mean_household_size", "missing_mean_education", "respondent_is_female", "respondent_age", "education_in_07", "missing_gender", "missing_age", "missing_education"),
+          dep.var.caption = c(),
+          dep.var.labels = c("Government support, 2007 (during program)"),
+          covariate.labels = c("Indicator (Standard Errors)", "Predicted Income", "Predicted Income sqrd", "Indicator*Predicted Income", "Indicator*Predicted Income sqrd"), 
+          notes.label = "Significance Levels",
+          add.lines = list(c("Score controls", "None", "Linear", "Quadratic", "None", "Linear", "Quadratic"),c("Other controls", "No", "No","No","Yes", "Yes", "Yes")))
+```
+
+
+**Answer:The bandwidth is used in how close to the threshold an observation’s running variable must be to be in the regression sample. And with a large bandwidth, you will have a larger sample which can shrink your standard errors and improve the precision of your results. And since the result didn't change, then the results are robust to a narrower bandwidth.**
 
 
 ## **Question 20: The authors attribute these effects to the causal effect of receiving the government transfers. What is the implied assumption behind this interpretation?**
