@@ -250,7 +250,7 @@ plot3 <- ggplot() +
 plot3
 ```
 
-!!!
+
 ## **Question 13: Interpret these figures. What should we take away from them? **
 
 **Answer:The figure demonstrates that program implementation was remarkably clean; among applicants, practically all potential beneficiaries—i.e., those with a standardized predicted income score below zero—benefited from the program. The opposite holds for ineligible households, and the discontinuity in the probability of program receipt at the threshold is 99 percentage points. This implies that enforcement of the rule was nearly as strict as implied by the letter of the law.** 
@@ -270,14 +270,13 @@ stargazer(reg1, reg2, reg3, type = "html", title = c("PANES Program Eligibility,
 
 ```
 
-**Answer: The table above is the polynomial in the standardized score of degree 0, and the coefficient above represents how these polynomials interacted with the eligibility indicator **
+**Answer: The table above is the polynomial in the standardized score of degree 0, and the coefficient above represents how these polynomials interacted with the eligibility indicator. Columns 1–3 present specifications with different parameterizations of the functions f1(·) and f2(·): no polynomial, a first order polynomial, and a quadratic polynomial, respectively. The relationship is strong and robust, across specifications, with a point estimate of 99 percent.  **
 
 
 
 ## **Question 15: Write down the specifications used in row 2 of columns 1,2 and 3 of table 1. **
 
-**Answer: Columns 1–3 present specifications with different parameterizations of the 
-functions f1(·) and f2(·): no polynomial, a first order polynomial (as in Figure 2 in the paper), and a quadratic polynomial, respectively. **
+**Answer: Columns 1–3 include, in order, a polynomial in the standardized score of degree 0, 1, and 2, and these polynomials interacted with the eligibility indicator.  **
 
 
 
@@ -306,16 +305,16 @@ stargazer(reg4, reg5, reg6, reg7, reg8, reg9,
           type= "text",
           style = "qje",
           title= "PANES Program Eligibility, Participation, and Political Support for the Government",
-          omit = c("geographic_locality", "mean_age", "log_per_capita_income", "mean_household_size", "mean_education", "missing_mean_age", "missing_log_per_capita_income", "missing_mean_household_size", "missing_mean_education", "respondent_is_female", "respondent_age", "education_in_07", "missing_gender", "missing_age", "missing_education","predicted_income", "indicator*predicted_income", "indicator*predicted_income_sqrd"),
-          dep.var.caption = c("Indicator (Standard Errors)"),
-          dep.var.labels = c("Indicator (Standard Errors)"),
-          covariate.labels = c("Government support, 2007 (during program)"), 
+          omit = c("geographic_locality", "mean_age", "log_per_capita_income", "mean_household_size", "mean_education", "missing_mean_age", "missing_log_per_capita_income", "missing_mean_household_size", "missing_mean_education", "respondent_is_female", "respondent_age", "education_in_07", "missing_gender", "missing_age", "missing_education"),
+          dep.var.caption = c(),
+          dep.var.labels = c("Government support, 2007 (during program)"),
+          covariate.labels = c("Indicator (Standard Errors)", "Predicted Income", "Predicted Income sqrd", "Indicator*Predicted Income", "Indicator*Predicted Income sqrd"), 
           notes.label = "Significance Levels",
           add.lines = list(c("Score controls", "None", "Linear", "Quadratic", "None", "Linear", "Quadratic"),c("Other controls", "No", "No","No","Yes", "Yes", "Yes")))
 
 ```
 
-**Answer: Hold the other variables equal, **
+**Answer: For the first three column, we have already explained above, for column 4-6, additionally control for pretreatment char-acteristics of household members, log per-capita income, age, education, and gender of the household head, locali-dad indicators, and separate indicators for missing values of each of these variables. In row 2 of the Table, the dependent variable is political support for the government in the first follow-up survey in 2007. Here, we use observations with valid responses o the political support variable, reducing the sample slightly. All estimates are of similar magnitude and statistically significant, suggesting a higher level of support for the government—of between 11 and 13 percentage points—among those eligible for PANES. **
 
 
 
@@ -327,18 +326,35 @@ stargazer(reg4, reg5, reg6, reg7, reg8, reg9,
 ## **Question 18: Using the coefficients estimated above, write out the function you would use to predict the probability a household supports the current government based on their predicted income score: **
 
 **a) If they are eligible for the transfer using the results from column 1.**
+$$
+sup07 = 0.772 + 0.219*indicator
+$$
 
 **b) If they are not eligible for the transfer using the results from column 1.**
-
+$$
+0.772
+$$
 **c) If they are eligible for the transfer using the results from column 2.**
+$$
+sup07 = 0.772+0.110*indicator-0.011*Predicted Income-1.916 *Indicator*Predicted Income
+$$
 
 **d) If they are not eligible for the transfer using the results from column 2.**
+$$
+sup07=0.772-0.011Predicted Income
+$$
 
 **e) If they are eligible for the transfer using the results from column 3.**
+$$
+sup07=0.769 + 0.130*Indicator + 0.812*Predicted Income-40.457*Predicted Income Sqrd+2.377*Indicator*Predicted Income+292.215*Indicator*Predicted Income sqrd 
+$$
 
 **f) If they are not eligible for the transfer using the results from column 3.**
 
 **Answer:**
+$$
+sup07=0.769 + 0.812*Predicted Income-40.457*Predicted Income Sqrd
+$$
 
 
 
@@ -346,6 +362,13 @@ stargazer(reg4, reg5, reg6, reg7, reg8, reg9,
 
 **Code:**
 ```{r}
+data$bins1 <- NA
+data$bins1[data$predicted_income < 0] <- xtile(data$predicted_income[data$predicted_income < 0], n=30)
+data$bins2 <- NA
+data$bins2[data$predicted_income >= 0] <- xtile(data$predicted_income[data$predicted_income >= 0], n=15)
+data$bins2 <- data$bins2 + 30
+data$bins1[data$predicted_income >= 0] <- data$bins2[data$predicted_income >= 0]
+View(data)
 
 ```
 
@@ -354,20 +377,18 @@ stargazer(reg4, reg5, reg6, reg7, reg8, reg9,
 
 ## **Question 20: The authors attribute these effects to the causal effect of receiving the government transfers. What is the implied assumption behind this interpretation?**
 
-**Answer:**
+**Answer:  imply that their political attitudes are entirely self-serving. Given their limited knowledge about the quasi-random program targeting rule, PANES applicants could reasonably have interpreted their own receipt of transfers as a strong signal of the government’s willingness and ability to assist the poor, which might in turn increase their support for the incumbent. We find, in the paper, that transfer recipients do show increased confidence in the government and its policies, greater optimism about the future of both their household and the country as a whole, and even perceive that social inequalities are becoming narrower. This optimism about the country’s direction is a plausible contributor to PANES recipients’ greater support for the government.**
 
 
 
 ## **Question 21: What evidence do they provide to support this assumption?**
 
-**Answer: First off, the evidence in plot1 above that virtually all eligible households received the program while nearly all ineligible households did not, suggests that blatant patronage is unlikely to have occurred. Nonetheless, we present formal tests for nonrandom assignment around the eligibility threshold. First, we estimate equation (1) for multiple baseline covariates measured in 2005 in the table above (and present the results graphically in Figure A1 in
-the online Appendix). If eligibility score manipulation occurred systematically, we might find these characteristics varying discontinuously at the eligibility threshold, to the extent that they are correlated with households’ political orientation. **
+**Answer: First off, the evidence in plot1 above that virtually all eligible households received the program while nearly all ineligible households did not, suggests that blatant patronage is unlikely to have occurred. Nonetheless, we present formal tests for nonrandom assignment around the eligibility threshold. First, we estimate equation (1) for multiple baseline covariates measured in 2005 in the table above. If eligibility score manipulation occurred systematically, we might find these characteristics varying discontinuously at the eligibility threshold, to the extent that they are correlated with households’ political orientation. **
  
 
 ## **Question 22: Was this threshold eligibility score specifically designed for this particular program? Why does this matter?**
 
-**Answer: Yes, the true eligibility threshold provides the best fit to the data as measured by the regression R2 (not shown), providing reas-surance that the discontinuity we exploit is a genuine feature of the data. As an additional robustness check, we take 
-advantage of the fact that the PANES eligibility threshold differs slightly across Uruguayan regions to estimate a difference-in-differences model, conditioning on the unstandardized income score and regional fixed effects, and focusing on the coefficient estimate on an indicator for PANES eligibility in that region. ** 
+**Answer: Yes, the true eligibility threshold provides the best fit to the data as measured by the regression, providing reassurance that the discontinuity we exploit is a genuine feature of the data. As an additional robustness check, we take advantage of the fact that the PANES eligibility threshold differs slightly across Uruguayan regions to estimate a difference-in-differences model, conditioning on the un-standardized income score and regional fixed effects, and focusing on the coefficient estimate on an indicator for PANES eligibility in that region. ** 
 
 
 
